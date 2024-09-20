@@ -56,4 +56,4 @@ ISC
 
 ## Author
 
-Narveer Rathore @narveer-bst
+Narveer Rathore [@narveer-rathore](https://github.com/narveer-rathore)
