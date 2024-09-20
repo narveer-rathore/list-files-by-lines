@@ -19,7 +19,7 @@ function countLinesInFile(filePath) {
 }
 
 // Function to recursively list files in a directory
-async function listFilesRecursively(dirPath, skipExtensions) {
+async function listFilesRecursively(dirPath, skipExtensions, excludePatterns) {
   let filesList = [];
   const files = await fs.promises.readdir(dirPath);
 
@@ -28,10 +28,10 @@ async function listFilesRecursively(dirPath, skipExtensions) {
     const stats = await fs.promises.stat(filePath);
 
     if (stats.isDirectory()) {
-      filesList = filesList.concat(await listFilesRecursively(filePath, skipExtensions));
+      filesList = filesList.concat(await listFilesRecursively(filePath, skipExtensions, excludePatterns));
     } else if (stats.isFile()) {
       const ext = path.extname(file).toLowerCase();
-      if (!skipExtensions[ext]) {
+      if (!skipExtensions[ext] && !excludePatterns.some(pattern => file.includes(pattern))) {
         filesList.push(filePath);
       }
     }
@@ -41,9 +41,9 @@ async function listFilesRecursively(dirPath, skipExtensions) {
 }
 
 // Function to list files in a directory in descending order of line numbers
-async function listFilesByLineCount(dirPath, skipExtensions, maxFiles) {
+async function listFilesByLineCount(dirPath, skipExtensions, excludePatterns, maxFiles) {
   try {
-    const files = await listFilesRecursively(dirPath, skipExtensions);
+    const files = await listFilesRecursively(dirPath, skipExtensions, excludePatterns);
     const fileStatsPromises = files.map(async (file) => {
       const lineCount = await countLinesInFile(file);
       return { file, lineCount };
@@ -61,12 +61,24 @@ async function listFilesByLineCount(dirPath, skipExtensions, maxFiles) {
 }
 
 // Get directory path and skip parameters from command line arguments
-const dirPath = process.argv[2];
+let dirPath = process.argv[2] || '.'; // Default to current directory if not provided
 const skipExtensions = [];
+const excludePatterns = [];
 let maxFiles = 1000;
 
 process.argv.forEach((arg, index) => {
   switch (arg) {
+    case '-d': // Directory option
+    case '--directory': {
+      dirPath = process.argv[index + 1];
+      break;
+    }
+    case '-e': // Exclude option
+    case '--exclude': {
+      const patterns = process.argv[index + 1].split(',').map(pattern => pattern.trim());
+      excludePatterns.push(...patterns);
+      break;
+    }
     case '-s': // Skip files with certain extensions
     case '-skip': {
       const extensions = process.argv[index + 1].split(',').map(ext => ext.trim().toLowerCase());
@@ -83,7 +95,8 @@ process.argv.forEach((arg, index) => {
           throw new Error('Invalid max files parameter');
         }
       } catch (err) {
-        throw new Error('Invalid max files parameter', e);
+        console.error('Invalid max files parameter', err);
+        process.exit(1);
       }
       break;
     }
@@ -93,9 +106,4 @@ process.argv.forEach((arg, index) => {
   }
 });
 
-if (!dirPath) {
-  console.error('Please provide a directory path as a parameter.');
-  process.exit(1);
-}
-
-listFilesByLineCount(dirPath, skipExtensions, maxFiles);
+listFilesByLineCount(dirPath, skipExtensions, excludePatterns, maxFiles);

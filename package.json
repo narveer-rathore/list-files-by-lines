@@ -1,6 +1,6 @@
 {
   "name": "list-files-by-lines",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Utility to sort files by number of lines in them. Useful in traversing through larger codebase and refactoring.",
   "main": "index.js",
   "scripts": {
@@ -13,6 +13,6 @@
   "author": "Narveer Rathore",
   "license": "ISC",
   "bin": {
-    "list-files-by-lines": "./index.js"
+    "list-files-by-lines": "index.js"
   }
 }
